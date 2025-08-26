@@ -21,10 +21,8 @@ export interface User {
   completedModules?: string[];
   currentModule?: string;
   examStartDate?: string;
-  selectedCertification?: string;
-  completedModules?: string[];
-  currentModule?: string;
-  examStartDate?: string;
+  specialization?: string;
+  experience?: string;
 }
 
 export interface CertificationType {
@@ -81,8 +79,6 @@ export interface Exam {
   price: number;
   certificationType?: string;
   moduleId?: string;
-  certificationType?: string;
-  moduleId?: string;
 }
 
 export interface Question {
@@ -93,15 +89,12 @@ export interface Question {
   correctAnswer?: string | number;
   points: number;
   category: 'leadership' | 'competences' | 'entrepreneuriat';
-  category: 'leadership' | 'competences' | 'entrepreneuriat';
 }
 
 export interface ExamSubmission {
   id: string;
   candidateId: string;
   examId: string;
-  certificationType: string;
-  moduleId: string;
   certificationType: string;
   moduleId: string;
   answers: Answer[];
@@ -128,19 +121,7 @@ export interface Payment {
   createdAt: string;
   certificationType: string;
   paymentType: 'full' | 'per-module';
-  certificationType: string;
-  paymentType: 'full' | 'per-module';
-}
-
-export interface Certificate {
-  id: string;
-  candidateId: string;
-  certificationType: string;
-  completedModules: string[];
-  overallScore: number;
-  issuedAt: string;
-  certificateUrl: string;
-  isComplete: boolean;
+  moduleId?: string;
 }
 
 export interface Certificate {
@@ -162,17 +143,6 @@ export interface AuthContextType {
   isLoading: boolean;
 }
 
-export interface ExamSession {
-  id: string;
-  candidateId: string;
-  certificationType: string;
-  moduleId: string;
-  startedAt: string;
-  expiresAt: string; // 3 days from start
-  currentModule: string;
-  completedModules: string[];
-  status: 'active' | 'completed' | 'expired';
-}
 export interface ExamSession {
   id: string;
   candidateId: string;

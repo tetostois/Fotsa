@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CheckCircle, Clock, CreditCard, FileText, BookOpen, AlertCircle, Download, ArrowRight } from 'lucide-react';
+import { CheckCircle, Clock, CreditCard, FileText, BookOpen, AlertCircle, Download, ArrowRight, Play } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useExam } from '../contexts/ExamContext';
 import { certificationTypes, getCertificationById } from '../data/certifications';
@@ -12,15 +12,16 @@ import { Input } from '../components/ui/Input';
 
 export const CandidateDashboard: React.FC = () => {
   const { user } = useAuth();
-  const { startExam, getExamByLevel } = useExam();
+  const { startModule, isExamActive } = useExam();
   const [showPayment, setShowPayment] = useState(false);
   const [paymentCompleted, setPaymentCompleted] = useState(user?.hasPaid || false);
-  const [examStarted, setExamStarted] = useState(false);
   const [showExamInstructions, setShowExamInstructions] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showSupportModal, setShowSupportModal] = useState(false);
   const [showCertificationSelector, setShowCertificationSelector] = useState(!user?.selectedCertification);
   const [selectedCertification, setSelectedCertification] = useState(user?.selectedCertification);
+  const [selectedPaymentType, setSelectedPaymentType] = useState<'full' | 'per-module'>('full');
+  const [selectedModuleForPayment, setSelectedModuleForPayment] = useState<string>('');
   
   const [profileForm, setProfileForm] = useState({
     firstName: user?.firstName || '',
@@ -53,22 +54,27 @@ export const CandidateDashboard: React.FC = () => {
     setShowCertificationSelector(false);
   };
 
-  const handleStartModule = (moduleId: string) => {
+  const handleStartModuleWithPayment = (moduleId: string) => {
     if (!currentCertification) return;
     
     if (!paymentCompleted) {
+      setSelectedPaymentType('per-module');
+      setSelectedModuleForPayment(moduleId);
       setShowPayment(true);
       return;
     }
     
-    // Démarrer le module
-    console.log('Démarrage du module:', moduleId);
-    setExamStarted(true);
+    // Le module sera démarré directement par ModuleProgress
   };
   
   const handleContinueModule = (moduleId: string) => {
-    console.log('Continuer le module:', moduleId);
-    setExamStarted(true);
+    if (!currentCertification) return;
+    startModule(currentCertification.id, moduleId);
+  };
+
+  const handlePaymentTypeSelect = (type: 'full' | 'per-module') => {
+    setSelectedPaymentType(type);
+    setShowPayment(true);
   };
 
   const saveProfile = () => {
@@ -102,7 +108,7 @@ export const CandidateDashboard: React.FC = () => {
       title: 'Modules',
       description: 'Compléter les 3 modules',
       completed: user.examTaken || false,
-      current: paymentCompleted && !user.examTaken && !examStarted
+      current: paymentCompleted && !user.examTaken && !isExamActive
     },
     {
       id: 'correction',
@@ -120,8 +126,8 @@ export const CandidateDashboard: React.FC = () => {
     }
   ];
 
-  if (examStarted) {
-    // Redirection vers l'interface d'examen
+  if (isExamActive) {
+    // L'interface d'examen sera affichée par App.tsx
     return null;
   }
 
@@ -202,9 +208,10 @@ export const CandidateDashboard: React.FC = () => {
             certification={currentCertification}
             completedModules={user.completedModules || []}
             currentModule={user.currentModule}
-            onStartModule={handleStartModule}
+            onStartModule={handleStartModuleWithPayment}
             onContinueModule={handleContinueModule}
             examStartDate={user.examStartDate}
+            hasPaid={paymentCompleted}
           />
         )}
 
@@ -234,7 +241,7 @@ export const CandidateDashboard: React.FC = () => {
                           <span className="text-blue-900 font-medium">Modules :</span>
                           <span className="text-blue-700">{currentCertification.modules.length} modules</span>
                         </div>
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-center justify-between mb-3">
                           <span className="text-blue-900 font-medium">Montant à payer :</span>
                           <span className="text-2xl font-bold text-blue-600">
                             {new Intl.NumberFormat('fr-FR', {
@@ -244,9 +251,44 @@ export const CandidateDashboard: React.FC = () => {
                             }).format(currentCertification.price)}
                           </span>
                         </div>
+                        {currentCertification.pricePerModule && (
+                          <div className="border-t border-blue-200 pt-3">
+                            <p className="text-blue-800 text-sm mb-2">Options de paiement :</p>
+                            <div className="space-y-2">
+                              <button
+                                onClick={() => handlePaymentTypeSelect('full')}
+                                className="w-full text-left p-2 bg-white border border-blue-200 rounded hover:bg-blue-50 transition-colors"
+                              >
+                                <div className="flex justify-between items-center">
+                                  <span className="font-medium text-blue-900">Certification complète</span>
+                                  <span className="text-blue-600">{new Intl.NumberFormat('fr-FR', {
+                                    style: 'currency',
+                                    currency: 'XAF',
+                                    minimumFractionDigits: 0
+                                  }).format(currentCertification.price)}</span>
+                                </div>
+                                <p className="text-xs text-blue-700">Accès à tous les modules</p>
+                              </button>
+                              <button
+                                onClick={() => handlePaymentTypeSelect('per-module')}
+                                className="w-full text-left p-2 bg-white border border-blue-200 rounded hover:bg-blue-50 transition-colors"
+                              >
+                                <div className="flex justify-between items-center">
+                                  <span className="font-medium text-blue-900">Paiement par module</span>
+                                  <span className="text-blue-600">{new Intl.NumberFormat('fr-FR', {
+                                    style: 'currency',
+                                    currency: 'XAF',
+                                    minimumFractionDigits: 0
+                                  }).format(currentCertification.pricePerModule)}</span>
+                                </div>
+                                <p className="text-xs text-blue-700">Payez module par module</p>
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
-                    <Button onClick={() => setShowPayment(true)}>
+                    <Button onClick={() => handlePaymentTypeSelect('full')}>
                       Procéder au paiement
                     </Button>
                   </div>
@@ -254,7 +296,7 @@ export const CandidateDashboard: React.FC = () => {
               </Card>
             )}
 
-            {paymentCompleted && !user.examTaken && !examStarted && currentCertification && (
+            {paymentCompleted && !user.examTaken && !isExamActive && currentCertification && (
               <Card>
                 <div className="flex items-start space-x-4">
                   <div className="p-3 bg-green-100 rounded-lg">
@@ -281,10 +323,11 @@ export const CandidateDashboard: React.FC = () => {
                     </div>
                     <div className="flex space-x-3">
                       <Button onClick={() => handleStartModule(currentCertification.modules[0].id)}>
-                        Commencer les modules
+                        <Play className="h-4 w-4 mr-2" />
+                        Commencer le premier module
                       </Button>
-                      <Button variant="secondary">
-                        Voir les instructions détaillées
+                      <Button onClick={() => setShowExamInstructions(true)} variant="secondary">
+                        Voir les instructions
                       </Button>
                     </div>
                   </div>
@@ -591,9 +634,14 @@ export const CandidateDashboard: React.FC = () => {
             </div>
             <div className="p-4">
               <PaymentForm 
-                amount={currentCertification?.price || 50000}
+                amount={
+                  selectedPaymentType === 'full' 
+                    ? (currentCertification?.price || 50000)
+                    : (currentCertification?.pricePerModule || 25000)
+                }
                 certificationType={selectedCertification || ''}
-                paymentType="full"
+                paymentType={selectedPaymentType}
+                moduleId={selectedModuleForPayment}
                 onPaymentSuccess={handlePaymentSuccess}
               />
             </div>
