@@ -7,10 +7,18 @@ import { Input } from '../ui/Input';
 interface PaymentFormProps {
   amount: number;
   onPaymentSuccess: () => void;
-  candidateLevel?: 'debutant' | 'intermediaire' | 'expert';
+  certificationType: string;
+  paymentType: 'full' | 'per-module';
+  moduleId?: string;
 }
 
-export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onPaymentSuccess, candidateLevel }) => {
+export const PaymentForm: React.FC<PaymentFormProps> = ({ 
+  amount, 
+  onPaymentSuccess, 
+  certificationType,
+  paymentType,
+  moduleId 
+}) => {
   const [selectedMethod, setSelectedMethod] = useState<'stripe' | 'cinetpay'>('stripe');
   const [isProcessing, setIsProcessing] = useState(false);
   const [cardNumber, setCardNumber] = useState('');
@@ -55,7 +63,12 @@ export const PaymentForm: React.FC<PaymentFormProps> = ({ amount, onPaymentSucce
     <Card className="max-w-md mx-auto">
       <div className="text-center mb-6">
         <h2 className="text-2xl font-bold text-gray-900">Paiement</h2>
-        <p className="text-gray-600 mt-2">Montant à payer: {formatPrice(amount)}</p>
+        <p className="text-gray-600 mt-2">
+          {paymentType === 'full' ? 'Certification complète' : 'Paiement par module'}
+        </p>
+        <p className="text-lg font-semibold text-gray-900 mt-1">
+          Montant: {formatPrice(amount)}
+        </p>
       </div>
 
       <div className="space-y-4 mb-6">

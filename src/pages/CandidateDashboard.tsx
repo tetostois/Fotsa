@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
-import { CheckCircle, Clock, CreditCard, FileText, BookOpen, AlertCircle, Download } from 'lucide-react';
+import { CheckCircle, Clock, CreditCard, FileText, BookOpen, AlertCircle, Download, ArrowRight } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useExam } from '../contexts/ExamContext';
+import { certificationTypes, getCertificationById } from '../data/certifications';
+import { CertificationSelector } from '../components/certification/CertificationSelector';
+import { ModuleProgress } from '../components/certification/ModuleProgress';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { PaymentForm } from '../components/payment/PaymentForm';
@@ -16,6 +19,8 @@ export const CandidateDashboard: React.FC = () => {
   const [showExamInstructions, setShowExamInstructions] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showSupportModal, setShowSupportModal] = useState(false);
+  const [showCertificationSelector, setShowCertificationSelector] = useState(!user?.selectedCertification);
+  const [selectedCertification, setSelectedCertification] = useState(user?.selectedCertification);
   
   const [profileForm, setProfileForm] = useState({
     firstName: user?.firstName || '',
@@ -23,7 +28,7 @@ export const CandidateDashboard: React.FC = () => {
     email: user?.email || '',
     phone: user?.phone || '',
     profession: user?.profession || '',
-    level: user?.level || 'debutant'
+    selectedCertification: user?.selectedCertification || ''
   });
   
   const [supportForm, setSupportForm] = useState({
@@ -33,6 +38,8 @@ export const CandidateDashboard: React.FC = () => {
 
   if (!user) return null;
 
+  const currentCertification = selectedCertification ? getCertificationById(selectedCertification) : null;
+
   const handlePaymentSuccess = () => {
     setPaymentCompleted(true);
     setShowPayment(false);
@@ -40,15 +47,30 @@ export const CandidateDashboard: React.FC = () => {
     user.hasPaid = true;
   };
 
-  const handleStartExam = () => {
-    if (!user.level) {
-      alert('Veuillez définir votre niveau dans votre profil avant de commencer l\'examen.');
+  const handleCertificationSelect = (certification: any) => {
+    setSelectedCertification(certification.id);
+    user.selectedCertification = certification.id;
+    setShowCertificationSelector(false);
+  };
+
+  const handleStartModule = (moduleId: string) => {
+    if (!currentCertification) return;
+    
+    if (!paymentCompleted) {
+      setShowPayment(true);
       return;
     }
-    startExam(user.level);
+    
+    // Démarrer le module
+    console.log('Démarrage du module:', moduleId);
     setExamStarted(true);
   };
   
+  const handleContinueModule = (moduleId: string) => {
+    console.log('Continuer le module:', moduleId);
+    setExamStarted(true);
+  };
+
   const saveProfile = () => {
     // Simulation de la sauvegarde
     console.log('Profil mis à jour:', profileForm);
@@ -67,9 +89,6 @@ export const CandidateDashboard: React.FC = () => {
     setShowSupportModal(false);
   };
 
-  // Obtenir les détails de l'examen selon le niveau
-  const currentExamDetails = user.level ? getExamByLevel(user.level) : null;
-
   const steps = [
     {
       id: 'payment',
@@ -80,8 +99,8 @@ export const CandidateDashboard: React.FC = () => {
     },
     {
       id: 'exam',
-      title: 'Examen',
-      description: 'Passer l\'évaluation',
+      title: 'Modules',
+      description: 'Compléter les 3 modules',
       completed: user.examTaken || false,
       current: paymentCompleted && !user.examTaken && !examStarted
     },
@@ -106,6 +125,20 @@ export const CandidateDashboard: React.FC = () => {
     return null;
   }
 
+  // Afficher le sélecteur de certification si aucune n'est sélectionnée
+  if (showCertificationSelector) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <CertificationSelector
+            onSelect={handleCertificationSelect}
+            selectedCertification={selectedCertification}
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 py-6">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -115,7 +148,10 @@ export const CandidateDashboard: React.FC = () => {
             Bienvenue, {user.firstName} {user.lastName}
           </h1>
           <p className="text-gray-600 mt-2">
-            Suivez votre progression vers la certification en leadership
+            {currentCertification ? 
+              `Progression: ${currentCertification.name}` : 
+              'Suivez votre progression vers la certification'
+            }
           </p>
         </div>
 
@@ -160,6 +196,18 @@ export const CandidateDashboard: React.FC = () => {
           </div>
         </Card>
 
+        {/* Certification Progress */}
+        {currentCertification && paymentCompleted && (
+          <ModuleProgress
+            certification={currentCertification}
+            completedModules={user.completedModules || []}
+            currentModule={user.currentModule}
+            onStartModule={handleStartModule}
+            onContinueModule={handleContinueModule}
+            examStartDate={user.examStartDate}
+          />
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
@@ -174,17 +222,17 @@ export const CandidateDashboard: React.FC = () => {
                       Paiement requis
                     </h3>
                     <p className="text-gray-600 mb-4">
-                      Pour accéder à l'examen, vous devez d'abord régler les frais de certification.
+                      Pour accéder aux modules, vous devez d'abord régler les frais de certification.
                     </p>
-                    {currentExamDetails && (
+                    {currentCertification && (
                       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
                         <div className="flex items-center justify-between mb-2">
-                          <span className="text-blue-900 font-medium">Examen niveau {user.level} :</span>
-                          <span className="text-sm text-blue-700 capitalize">{currentExamDetails.title}</span>
+                          <span className="text-blue-900 font-medium">Certification :</span>
+                          <span className="text-sm text-blue-700">{currentCertification.name}</span>
                         </div>
                         <div className="flex items-center justify-between mb-2">
-                          <span className="text-blue-900 font-medium">Durée :</span>
-                          <span className="text-blue-700">{currentExamDetails.duration} minutes</span>
+                          <span className="text-blue-900 font-medium">Modules :</span>
+                          <span className="text-blue-700">{currentCertification.modules.length} modules</span>
                         </div>
                         <div className="flex items-center justify-between">
                           <span className="text-blue-900 font-medium">Montant à payer :</span>
@@ -193,7 +241,7 @@ export const CandidateDashboard: React.FC = () => {
                               style: 'currency',
                               currency: 'XAF',
                               minimumFractionDigits: 0
-                            }).format(currentExamDetails.price)}
+                            }).format(currentCertification.price)}
                           </span>
                         </div>
                       </div>
@@ -206,7 +254,7 @@ export const CandidateDashboard: React.FC = () => {
               </Card>
             )}
 
-            {paymentCompleted && !user.examTaken && !examStarted && (
+            {paymentCompleted && !user.examTaken && !examStarted && currentCertification && (
               <Card>
                 <div className="flex items-start space-x-4">
                   <div className="p-3 bg-green-100 rounded-lg">
@@ -214,10 +262,10 @@ export const CandidateDashboard: React.FC = () => {
                   </div>
                   <div className="flex-1">
                     <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                      Prêt pour l'examen
+                      Prêt pour les modules
                     </h3>
                     <p className="text-gray-600 mb-4">
-                      Votre paiement a été confirmé. Vous pouvez maintenant passer l'examen de certification.
+                      Votre paiement a été confirmé. Vous pouvez maintenant commencer les modules de certification.
                     </p>
                     <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
                       <div className="flex items-center space-x-2">
@@ -225,15 +273,15 @@ export const CandidateDashboard: React.FC = () => {
                         <span className="font-medium text-yellow-800">Important :</span>
                       </div>
                       <ul className="text-yellow-700 text-sm mt-2 space-y-1">
-                        <li>• L'examen dure exactement 60 minutes</li>
-                        <li>• Une fois commencé, vous ne pourrez pas le mettre en pause</li>
+                        <li>• Chaque module dure 60 minutes (20 questions)</li>
+                        <li>• Vous avez 3 jours pour terminer tous les modules</li>
                         <li>• Assurez-vous d'avoir une connexion internet stable</li>
                         <li>• Préparez un environnement calme et sans distractions</li>
                       </ul>
                     </div>
                     <div className="flex space-x-3">
-                      <Button onClick={() => setShowExamInstructions(true)}>
-                        Commencer l'examen
+                      <Button onClick={() => handleStartModule(currentCertification.modules[0].id)}>
+                        Commencer les modules
                       </Button>
                       <Button variant="secondary">
                         Voir les instructions détaillées
@@ -252,10 +300,10 @@ export const CandidateDashboard: React.FC = () => {
                   </div>
                   <div className="flex-1">
                     <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                      Examen soumis
+                      Modules soumis
                     </h3>
                     <p className="text-gray-600 mb-4">
-                      Votre examen a été soumis avec succès et est en cours de correction par nos examinateurs.
+                      Vos modules ont été soumis avec succès et sont en cours de correction par nos examinateurs.
                     </p>
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                       <p className="text-blue-800 text-sm">
@@ -279,7 +327,7 @@ export const CandidateDashboard: React.FC = () => {
                       Résultats disponibles
                     </h3>
                     <p className="text-gray-600 mb-4">
-                      Félicitations ! Votre examen a été corrigé et votre certificat est prêt.
+                      Félicitations ! Vos modules ont été corrigés et votre certificat est prêt.
                     </p>
                     <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
                       <div className="flex items-center justify-between mb-2">
@@ -305,6 +353,31 @@ export const CandidateDashboard: React.FC = () => {
           {/* Sidebar */}
           <div className="space-y-6">
             <Card>
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="font-semibold text-gray-900">Certification</h3>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => setShowCertificationSelector(true)}
+                >
+                  Changer
+                </Button>
+              </div>
+              {currentCertification && (
+                <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <h4 className="font-medium text-blue-900 text-sm mb-1">
+                    {currentCertification.name}
+                  </h4>
+                  <p className="text-xs text-blue-700">
+                    {currentCertification.modules.length} modules • {new Intl.NumberFormat('fr-FR', {
+                      style: 'currency',
+                      currency: 'XAF',
+                      minimumFractionDigits: 0
+                    }).format(currentCertification.price)}
+                  </p>
+                </div>
+              )}
+              
               <h3 className="font-semibold text-gray-900 mb-4">Informations</h3>
               <div className="flex justify-between items-center mb-4">
                 <span className="text-sm font-medium">Profil</span>
@@ -330,10 +403,6 @@ export const CandidateDashboard: React.FC = () => {
                   <span className="font-medium">{user.profession}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Niveau :</span>
-                  <span className="font-medium capitalize">{user.level || 'Non défini'}</span>
-                </div>
-                <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Statut :</span>
                   <span className={`font-medium ${
                     user.score !== undefined ? 'text-green-600' :
@@ -342,7 +411,7 @@ export const CandidateDashboard: React.FC = () => {
                   }`}>
                     {user.score !== undefined ? 'Certifié' :
                      user.examTaken ? 'En correction' :
-                     paymentCompleted ? 'Prêt pour examen' : 'En attente de paiement'}
+                     paymentCompleted ? 'Prêt pour modules' : 'En attente de paiement'}
                   </span>
                 </div>
               </div>
@@ -359,19 +428,15 @@ export const CandidateDashboard: React.FC = () => {
                   Contacter
                 </Button>
               </div>
-              <h3 className="font-semibold text-gray-900 mb-4">Détails de l'examen</h3>
+              <h3 className="font-semibold text-gray-900 mb-4">Détails des modules</h3>
               <div className="space-y-3">
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Durée :</span>
-                  <span className="font-medium">
-                    {currentExamDetails ? `${currentExamDetails.duration} minutes` : 'Non défini'}
-                  </span>
+                  <span className="text-gray-600">Durée par module :</span>
+                  <span className="font-medium">60 minutes</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Questions :</span>
-                  <span className="font-medium">
-                    {currentExamDetails ? `${currentExamDetails.questions.length} questions` : 'Non défini'}
-                  </span>
+                  <span className="text-gray-600">Questions par module :</span>
+                  <span className="font-medium">20 questions</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Score minimum :</span>
@@ -384,12 +449,12 @@ export const CandidateDashboard: React.FC = () => {
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Prix :</span>
                   <span className="font-medium">
-                    {currentExamDetails ? 
+                    {currentCertification ? 
                       new Intl.NumberFormat('fr-FR', {
                         style: 'currency',
                         currency: 'XAF',
                         minimumFractionDigits: 0
-                      }).format(currentExamDetails.price) : 'Non défini'}
+                      }).format(currentCertification.price) : 'Non défini'}
                   </span>
                 </div>
               </div>
@@ -440,18 +505,6 @@ export const CandidateDashboard: React.FC = () => {
                   value={profileForm.profession}
                   onChange={(e) => setProfileForm({...profileForm, profession: e.target.value})}
                 />
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Niveau</label>
-                  <select
-                    value={profileForm.level}
-                    onChange={(e) => setProfileForm({...profileForm, level: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="debutant">Débutant</option>
-                    <option value="intermediaire">Intermédiaire</option>
-                    <option value="expert">Expert</option>
-                  </select>
-                </div>
               </div>
               
               <div className="flex space-x-3 mt-6">
@@ -538,8 +591,9 @@ export const CandidateDashboard: React.FC = () => {
             </div>
             <div className="p-4">
               <PaymentForm 
-                amount={currentExamDetails?.price || 50000}
-                candidateLevel={user.level}
+                amount={currentCertification?.price || 50000}
+                certificationType={selectedCertification || ''}
+                paymentType="full"
                 onPaymentSuccess={handlePaymentSuccess}
               />
             </div>
@@ -547,12 +601,12 @@ export const CandidateDashboard: React.FC = () => {
         </div>
       )}
 
-      {/* Exam Instructions Modal */}
+      {/* Module Instructions Modal */}
       {showExamInstructions && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <Card className="max-w-2xl w-full max-h-96 overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-semibold">Instructions de l'examen</h3>
+              <h3 className="text-xl font-semibold">Instructions des modules</h3>
               <button 
                 onClick={() => setShowExamInstructions(false)}
                 className="text-gray-400 hover:text-gray-600"
@@ -565,10 +619,11 @@ export const CandidateDashboard: React.FC = () => {
               <div>
                 <h4 className="font-medium text-gray-900 mb-2">Règles importantes :</h4>
                 <ul className="list-disc pl-6 text-sm text-gray-700 space-y-1">
-                  <li>L'examen dure exactement 60 minutes et ne peut pas être interrompu</li>
-                  <li>Il contient 5 questions : 3 QCM et 2 questions ouvertes</li>
+                  <li>Chaque module dure exactement 60 minutes et ne peut pas être interrompu</li>
+                  <li>Chaque module contient 20 questions variées</li>
                   <li>Vous pouvez naviguer entre les questions et modifier vos réponses</li>
                   <li>La soumission est automatique à la fin du temps imparti</li>
+                  <li>Vous avez 3 jours pour terminer tous les modules</li>
                   <li>Assurez-vous d'avoir une connexion internet stable</li>
                 </ul>
               </div>
@@ -578,6 +633,7 @@ export const CandidateDashboard: React.FC = () => {
                 <ul className="list-disc pl-6 text-sm text-gray-700 space-y-1">
                   <li>Lisez attentivement chaque question avant de répondre</li>
                   <li>Gérez votre temps efficacement</li>
+                  <li>Complétez les modules dans l'ordre (Leadership → Compétences → Entrepreneuriat)</li>
                   <li>Pour les questions ouvertes, donnez des exemples concrets</li>
                   <li>Vérifiez vos réponses avant la soumission finale</li>
                 </ul>
@@ -593,10 +649,10 @@ export const CandidateDashboard: React.FC = () => {
                 Annuler
               </Button>
               <Button
-                onClick={handleStartExam}
+                onClick={() => currentCertification && handleStartModule(currentCertification.modules[0].id)}
                 className="flex-1 bg-green-600 hover:bg-green-700"
               >
-                Commencer l'examen
+                Commencer les modules
               </Button>
             </div>
           </Card>

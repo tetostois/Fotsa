@@ -17,11 +17,36 @@ export interface User {
   examTaken?: boolean;
   score?: number;
   certificate?: string;
-  level?: 'debutant' | 'intermediaire' | 'expert';
   selectedCertification?: string;
   completedModules?: string[];
   currentModule?: string;
   examStartDate?: string;
+  selectedCertification?: string;
+  completedModules?: string[];
+  currentModule?: string;
+  examStartDate?: string;
+}
+
+export interface CertificationType {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  pricePerModule?: number;
+  targetAudience: string;
+  objective: string;
+  color: string;
+  modules: CertificationModule[];
+  isActive: boolean;
+}
+
+export interface CertificationModule {
+  id: string;
+  name: string;
+  description: string;
+  questions: Question[];
+  duration: number; // 60 minutes (20 questions × 3 minutes)
+  order: number;
 }
 
 export interface CertificationType {
@@ -56,6 +81,8 @@ export interface Exam {
   price: number;
   certificationType?: string;
   moduleId?: string;
+  certificationType?: string;
+  moduleId?: string;
 }
 
 export interface Question {
@@ -66,12 +93,15 @@ export interface Question {
   correctAnswer?: string | number;
   points: number;
   category: 'leadership' | 'competences' | 'entrepreneuriat';
+  category: 'leadership' | 'competences' | 'entrepreneuriat';
 }
 
 export interface ExamSubmission {
   id: string;
   candidateId: string;
   examId: string;
+  certificationType: string;
+  moduleId: string;
   certificationType: string;
   moduleId: string;
   answers: Answer[];
@@ -98,6 +128,19 @@ export interface Payment {
   createdAt: string;
   certificationType: string;
   paymentType: 'full' | 'per-module';
+  certificationType: string;
+  paymentType: 'full' | 'per-module';
+}
+
+export interface Certificate {
+  id: string;
+  candidateId: string;
+  certificationType: string;
+  completedModules: string[];
+  overallScore: number;
+  issuedAt: string;
+  certificateUrl: string;
+  isComplete: boolean;
 }
 
 export interface Certificate {
@@ -119,6 +162,17 @@ export interface AuthContextType {
   isLoading: boolean;
 }
 
+export interface ExamSession {
+  id: string;
+  candidateId: string;
+  certificationType: string;
+  moduleId: string;
+  startedAt: string;
+  expiresAt: string; // 3 days from start
+  currentModule: string;
+  completedModules: string[];
+  status: 'active' | 'completed' | 'expired';
+}
 export interface ExamSession {
   id: string;
   candidateId: string;

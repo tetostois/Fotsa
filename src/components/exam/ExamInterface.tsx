@@ -8,15 +8,15 @@ import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 
 export const ExamInterface: React.FC = () => {
-  const { currentExam, currentAnswers, submitAnswer, submitExam } = useExam();
+  const { currentModule, currentAnswers, submitAnswer, submitModule } = useExam();
   const { user } = useAuth();
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [showSubmitModal, setShowSubmitModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  if (!currentExam || !user) return null;
+  if (!currentModule || !user) return null;
 
-  const currentQuestion = currentExam.questions[currentQuestionIndex];
+  const currentQuestion = currentModule.questions[currentQuestionIndex];
   const currentAnswer = currentAnswers.find(a => a.questionId === currentQuestion.id)?.value;
   
   const handleAnswerChange = (answer: string | number) => {
@@ -24,7 +24,7 @@ export const ExamInterface: React.FC = () => {
   };
 
   const handleNext = () => {
-    if (currentQuestionIndex < currentExam.questions.length - 1) {
+    if (currentQuestionIndex < currentModule.questions.length - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
     }
   };
@@ -37,13 +37,13 @@ export const ExamInterface: React.FC = () => {
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
-    const success = await submitExam();
+    const success = await submitModule();
     setIsSubmitting(false);
     setShowSubmitModal(false);
   };
 
   const answeredQuestions = currentAnswers.length;
-  const totalQuestions = currentExam.questions.length;
+  const totalQuestions = currentModule.questions.length;
   const progressPercentage = (answeredQuestions / totalQuestions) * 100;
 
   return (
@@ -53,7 +53,7 @@ export const ExamInterface: React.FC = () => {
         <div className="mb-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">{currentExam.title}</h1>
+              <h1 className="text-2xl font-bold text-gray-900">{currentModule.name}</h1>
               <p className="text-gray-600">Candidat: {user.firstName} {user.lastName}</p>
             </div>
             <ExamTimer />
@@ -111,7 +111,7 @@ export const ExamInterface: React.FC = () => {
               className="flex items-center space-x-2 bg-green-600 hover:bg-green-700"
             >
               <Send className="h-4 w-4" />
-              <span>Soumettre l'examen</span>
+              <span>Soumettre le module</span>
             </Button>
           ) : (
             <Button
@@ -128,8 +128,8 @@ export const ExamInterface: React.FC = () => {
         <Card>
           <h3 className="font-medium text-gray-900 mb-3">Navigation rapide</h3>
           <div className="flex flex-wrap gap-2">
-            {currentExam.questions.map((_, index) => {
-              const isAnswered = currentAnswers.some(a => a.questionId === currentExam.questions[index].id);
+            {currentModule.questions.map((_, index) => {
+              const isAnswered = currentAnswers.some(a => a.questionId === currentModule.questions[index].id);
               const isCurrent = index === currentQuestionIndex;
               
               return (
@@ -159,7 +159,7 @@ export const ExamInterface: React.FC = () => {
             <div className="flex items-start space-x-3 mb-4">
               <AlertCircle className="h-6 w-6 text-orange-500 flex-shrink-0 mt-0.5" />
               <div>
-                <h3 className="text-lg font-medium text-gray-900">Confirmer la soumission</h3>
+                <h3 className="text-lg font-medium text-gray-900">Confirmer la soumission du module</h3>
                 <p className="text-gray-600 mt-1">
                   Vous avez répondu à {answeredQuestions} question{answeredQuestions > 1 ? 's' : ''} sur {totalQuestions}.
                   Une fois soumis, vous ne pourrez plus modifier vos réponses.

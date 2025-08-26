@@ -3,7 +3,7 @@ import { Clock, AlertTriangle } from 'lucide-react';
 import { useExam } from '../../contexts/ExamContext';
 
 export const ExamTimer: React.FC = () => {
-  const { timeRemaining, setTimeRemaining, submitExam } = useExam();
+  const { timeRemaining, setTimeRemaining, submitModule } = useExam();
 
   useEffect(() => {
     if (timeRemaining <= 0) return;
@@ -17,9 +17,9 @@ export const ExamTimer: React.FC = () => {
 
   useEffect(() => {
     if (timeRemaining === 0) {
-      submitExam();
+      submitModule();
     }
-  }, [timeRemaining, submitExam]);
+  }, [timeRemaining, submitModule]);
 
   const formatTime = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
