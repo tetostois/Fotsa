@@ -101,6 +101,7 @@ interface ExamContextType {
   submitModule: () => Promise<boolean>;
   setTimeRemaining: (time: number) => void;
   getExamByLevel: (level: 'debutant' | 'intermediaire' | 'expert') => Exam;
+}
 
 const ExamContext = createContext<ExamContextType | undefined>(undefined);
 
