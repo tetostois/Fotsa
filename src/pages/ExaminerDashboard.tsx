@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { FileText, Clock, CheckCircle, User, MessageSquare, Star } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { certificationTypes, getCertificationById } from '../data/certifications';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
@@ -9,6 +10,8 @@ interface Submission {
   id: string;
   candidateName: string;
   candidateEmail: string;
+  certificationType: string;
+  moduleId: string;
   submittedAt: string;
   status: 'pending' | 'corrected';
   score?: number;
@@ -46,6 +49,8 @@ export const ExaminerDashboard: React.FC = () => {
       id: '1',
       candidateName: 'Marie Candidate',
       candidateEmail: 'marie.candidate@email.com',
+      certificationType: 'initiation-pratique',
+      moduleId: 'leadership-init',
       submittedAt: '2024-01-15T14:30:00Z',
       status: 'pending',
       answers: [
@@ -85,6 +90,8 @@ export const ExaminerDashboard: React.FC = () => {
       id: '2',
       candidateName: 'Jean Dupont',
       candidateEmail: 'jean.dupont@email.com',
+      certificationType: 'cadre-manager',
+      moduleId: 'competences-cadre',
       submittedAt: '2024-01-14T10:15:00Z',
       status: 'corrected',
       score: 78,
@@ -363,6 +370,19 @@ export const ExaminerDashboard: React.FC = () => {
                     <div>
                       <span className="text-gray-600">Email :</span>
                       <span className="ml-2 font-medium">{selectedSubmission.candidateEmail}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Certification :</span>
+                      <span className="ml-2 font-medium">
+                        {getCertificationById(selectedSubmission.certificationType)?.name || 'Non définie'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Module :</span>
+                      <span className="ml-2 font-medium">
+                        {getCertificationById(selectedSubmission.certificationType)?.modules
+                          .find(m => m.id === selectedSubmission.moduleId)?.name || 'Non défini'}
+                      </span>
                     </div>
                     <div>
                       <span className="text-gray-600">Soumis le :</span>

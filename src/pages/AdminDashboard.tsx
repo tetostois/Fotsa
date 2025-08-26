@@ -23,6 +23,7 @@ import {
   X
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { certificationTypes, getCertificationById } from '../data/certifications';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
@@ -57,6 +58,8 @@ interface ExamSubmission {
   id: string;
   candidateName: string;
   candidateEmail: string;
+  certificationType: string;
+  moduleId: string;
   submittedAt: string;
   status: 'pending' | 'assigned' | 'corrected';
   assignedTo?: string;
@@ -159,6 +162,8 @@ export const AdminDashboard: React.FC = () => {
       id: '1',
       candidateName: 'Marie Dubois',
       candidateEmail: 'marie.dubois@email.com',
+      certificationType: 'initiation-pratique',
+      moduleId: 'leadership-init',
       submittedAt: '2024-01-15T14:30:00Z',
       status: 'pending'
     },
@@ -166,6 +171,8 @@ export const AdminDashboard: React.FC = () => {
       id: '2',
       candidateName: 'Paul Nkomo',
       candidateEmail: 'paul.nkomo@email.com',
+      certificationType: 'cadre-manager',
+      moduleId: 'competences-cadre',
       submittedAt: '2024-01-14T10:15:00Z',
       status: 'assigned',
       assignedTo: 'Dr. Jean Kamga'
@@ -790,6 +797,8 @@ export const AdminDashboard: React.FC = () => {
                     <thead>
                       <tr className="border-b border-gray-200">
                         <th className="text-left py-3 px-4 font-medium text-gray-900">Candidat</th>
+                        <th className="text-left py-3 px-4 font-medium text-gray-900">Certification</th>
+                        <th className="text-left py-3 px-4 font-medium text-gray-900">Module</th>
                         <th className="text-left py-3 px-4 font-medium text-gray-900">Date soumission</th>
                         <th className="text-left py-3 px-4 font-medium text-gray-900">Statut</th>
                         <th className="text-left py-3 px-4 font-medium text-gray-900">Assigné à</th>
@@ -804,6 +813,26 @@ export const AdminDashboard: React.FC = () => {
                               <p className="font-medium text-gray-900">{submission.candidateName}</p>
                               <p className="text-sm text-gray-500">{submission.candidateEmail}</p>
                             </div>
+                          </td>
+                          <td className="py-3 px-4">
+                            <div className="text-sm">
+                              <p className="font-medium text-gray-900">
+                                {getCertificationById(submission.certificationType)?.name || 'Non définie'}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                {new Intl.NumberFormat('fr-FR', {
+                                  style: 'currency',
+                                  currency: 'XAF',
+                                  minimumFractionDigits: 0
+                                }).format(getCertificationById(submission.certificationType)?.price || 0)}
+                              </p>
+                            </div>
+                          </td>
+                          <td className="py-3 px-4">
+                            <span className="text-sm font-medium text-gray-900">
+                              {getCertificationById(submission.certificationType)?.modules
+                                .find(m => m.id === submission.moduleId)?.name || 'Non défini'}
+                            </span>
                           </td>
                           <td className="py-3 px-4 text-gray-900">
                             {formatDate(submission.submittedAt)}
@@ -963,6 +992,27 @@ export const AdminDashboard: React.FC = () => {
                   <p className="text-sm text-gray-500">Objectif: 48h</p>
                 </Card>
               </div>
+              
+              <Card className="mt-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Répartition par certification</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {certificationTypes.map((cert) => {
+                    const submissionsCount = examSubmissions.filter(s => s.certificationType === cert.id).length;
+                    return (
+                      <div key={cert.id} className="p-4 bg-gray-50 rounded-lg">
+                        <h4 className="font-medium text-gray-900 text-sm mb-2">{cert.name}</h4>
+                        <div className="flex justify-between items-center">
+                          <span className="text-2xl font-bold text-blue-600">{submissionsCount}</span>
+                          <span className="text-sm text-gray-500">soumissions</span>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {formatPrice(cert.price)} • {cert.modules.length} modules
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </Card>
             </div>
           )}
 
@@ -1107,6 +1157,23 @@ export const AdminDashboard: React.FC = () => {
             
             <div className="p-6">
               <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Certifications disponibles
+                  </label>
+                  <div className="space-y-2">
+                    {certificationTypes.map((cert) => (
+                          <p className="font-bold text-gray-900">{formatPrice(cert.price)}</p>
+                          <span className={`px-2 py-1 text-xs rounded-full ${
+                            cert.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                          }`}>
+                            {cert.isActive ? 'Actif' : 'Inactif'}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
                 <Input
                   label="Prénom"
                   value={examinerForm.firstName}
