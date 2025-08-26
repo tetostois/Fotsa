@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Send, AlertCircle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Send, AlertCircle, X, Home } from 'lucide-react';
 import { useExam } from '../../contexts/ExamContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { ExamTimer } from './ExamTimer';
@@ -8,10 +8,20 @@ import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 
 export const ExamInterface: React.FC = () => {
-  const { currentModule, currentAnswers, submitAnswer, submitModule } = useExam();
+  const { 
+    currentModule, 
+    currentCertification, 
+    currentAnswers, 
+    submitAnswer, 
+    submitModule, 
+    endExam,
+    completedModules,
+    currentModuleIndex 
+  } = useExam();
   const { user } = useAuth();
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [showSubmitModal, setShowSubmitModal] = useState(false);
+  const [showExitModal, setShowExitModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!currentModule || !user) return null;
@@ -42,6 +52,11 @@ export const ExamInterface: React.FC = () => {
     setShowSubmitModal(false);
   };
 
+  const handleExit = () => {
+    endExam();
+    setShowExitModal(false);
+  };
+
   const answeredQuestions = currentAnswers.length;
   const totalQuestions = currentModule.questions.length;
   const progressPercentage = (answeredQuestions / totalQuestions) * 100;
@@ -53,10 +68,34 @@ export const ExamInterface: React.FC = () => {
         <div className="mb-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
             <div>
+              {currentCertification && (
+                <div className="mb-2">
+                  <span className="text-sm text-gray-600">{currentCertification.name}</span>
+                  <div className="flex items-center space-x-2 mt-1">
+                    <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                      Module {currentModuleIndex + 1}/3
+                    </span>
+                    <span className="text-xs text-gray-500">
+                      {completedModules.length} module{completedModules.length > 1 ? 's' : ''} terminé{completedModules.length > 1 ? 's' : ''}
+                    </span>
+                  </div>
+                </div>
+              )}
               <h1 className="text-2xl font-bold text-gray-900">{currentModule.name}</h1>
               <p className="text-gray-600">Candidat: {user.firstName} {user.lastName}</p>
             </div>
-            <ExamTimer />
+            <div className="flex items-center space-x-3">
+              <ExamTimer />
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setShowExitModal(true)}
+                className="flex items-center space-x-2"
+              >
+                <X className="h-4 w-4" />
+                <span>Quitter</span>
+              </Button>
+            </div>
           </div>
 
           {/* Progress Bar */}
@@ -152,6 +191,40 @@ export const ExamInterface: React.FC = () => {
         </Card>
       </div>
 
+      {/* Exit Modal */}
+      {showExitModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <Card className="max-w-md w-full">
+            <div className="flex items-start space-x-3 mb-4">
+              <AlertCircle className="h-6 w-6 text-red-500 flex-shrink-0 mt-0.5" />
+              <div>
+                <h3 className="text-lg font-medium text-gray-900">Quitter l'examen</h3>
+                <p className="text-gray-600 mt-1">
+                  Êtes-vous sûr de vouloir quitter l'examen ? Vos réponses actuelles seront perdues.
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex space-x-3">
+              <Button
+                variant="secondary"
+                onClick={() => setShowExitModal(false)}
+                className="flex-1"
+              >
+                Continuer l'examen
+              </Button>
+              <Button
+                variant="danger"
+                onClick={handleExit}
+                className="flex-1"
+              >
+                Quitter
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
+
       {/* Submit Modal */}
       {showSubmitModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -164,6 +237,11 @@ export const ExamInterface: React.FC = () => {
                   Vous avez répondu à {answeredQuestions} question{answeredQuestions > 1 ? 's' : ''} sur {totalQuestions}.
                   Une fois soumis, vous ne pourrez plus modifier vos réponses.
                 </p>
+                {currentCertification && currentModuleIndex < currentCertification.modules.length - 1 && (
+                  <p className="text-blue-600 text-sm mt-2">
+                    Après soumission, vous pourrez passer au module suivant.
+                  </p>
+                )}
               </div>
             </div>
             

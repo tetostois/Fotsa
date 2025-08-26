@@ -1,6 +1,7 @@
 import React from 'react';
-import { CheckCircle, Clock, Lock, Play } from 'lucide-react';
+import { CheckCircle, Clock, Lock, Play, AlertTriangle } from 'lucide-react';
 import { CertificationType, CertificationModule } from '../../types';
+import { useExam } from '../../contexts/ExamContext';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 
@@ -11,6 +12,7 @@ interface ModuleProgressProps {
   onStartModule: (moduleId: string) => void;
   onContinueModule: (moduleId: string) => void;
   examStartDate?: string;
+  hasPaid: boolean;
 }
 
 export const ModuleProgress: React.FC<ModuleProgressProps> = ({
@@ -19,8 +21,11 @@ export const ModuleProgress: React.FC<ModuleProgressProps> = ({
   currentModule,
   onStartModule,
   onContinueModule,
-  examStartDate
+  examStartDate,
+  hasPaid
 }) => {
+  const { startModule } = useExam();
+
   const getModuleStatus = (module: CertificationModule, index: number) => {
     if (completedModules.includes(module.id)) {
       return 'completed';
@@ -32,6 +37,16 @@ export const ModuleProgress: React.FC<ModuleProgressProps> = ({
       return 'available';
     }
     return 'locked';
+  };
+
+  const handleStartModule = (moduleId: string) => {
+    if (!hasPaid) {
+      onStartModule(moduleId);
+      return;
+    }
+    
+    // Démarrer directement le module dans le contexte d'examen
+    startModule(certification.id, moduleId);
   };
 
   const getTimeRemaining = () => {
@@ -101,6 +116,18 @@ export const ModuleProgress: React.FC<ModuleProgressProps> = ({
             <span className="font-medium">{timeRemaining}</span>
           </div>
         )}
+        
+        {!hasPaid && (
+          <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-4">
+            <div className="flex items-center space-x-2">
+              <AlertTriangle className="h-5 w-5 text-orange-600" />
+              <span className="font-medium text-orange-800">Paiement requis</span>
+            </div>
+            <p className="text-orange-700 text-sm mt-1">
+              Vous devez effectuer le paiement avant de pouvoir commencer les modules.
+            </p>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -146,6 +173,7 @@ export const ModuleProgress: React.FC<ModuleProgressProps> = ({
                   <Button
                     onClick={() => onContinueModule(module.id)}
                     className="w-full bg-blue-600 hover:bg-blue-700"
+                    disabled={!hasPaid}
                   >
                     Continuer le module
                   </Button>
@@ -153,10 +181,11 @@ export const ModuleProgress: React.FC<ModuleProgressProps> = ({
 
                 {status === 'available' && (
                   <Button
-                    onClick={() => onStartModule(module.id)}
+                    onClick={() => handleStartModule(module.id)}
                     className="w-full bg-orange-600 hover:bg-orange-700"
+                    disabled={!hasPaid && timeRemaining !== 'Expiré'}
                   >
-                    Commencer le module
+                    {hasPaid ? 'Commencer le module' : 'Paiement requis'}
                   </Button>
                 )}
 

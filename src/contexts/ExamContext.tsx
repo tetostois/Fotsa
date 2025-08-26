@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { Exam, Question, ExamSubmission, Answer, CertificationModule } from '../types';
+import { Exam, Question, ExamSubmission, Answer, CertificationModule, CertificationType } from '../types';
 import { getCertificationById } from '../data/certifications';
 
 // Questions par catégorie pour générer les modules dynamiquement
@@ -96,11 +96,14 @@ interface ExamContextType {
   currentAnswers: Answer[];
   timeRemaining: number;
   isExamActive: boolean;
+  currentCertification: CertificationType | null;
+  completedModules: string[];
+  currentModuleIndex: number;
   startModule: (certificationType: string, moduleId: string) => void;
   submitAnswer: (questionId: string, answer: string | number) => void;
   submitModule: () => Promise<boolean>;
   setTimeRemaining: (time: number) => void;
-  getExamByLevel: (level: 'debutant' | 'intermediaire' | 'expert') => Exam;
+  endExam: () => void;
 }
 
 const ExamContext = createContext<ExamContextType | undefined>(undefined);
@@ -108,9 +111,12 @@ const ExamContext = createContext<ExamContextType | undefined>(undefined);
 
 export const ExamProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [currentModule, setCurrentModule] = useState<CertificationModule | null>(null);
+  const [currentCertification, setCurrentCertification] = useState<CertificationType | null>(null);
   const [currentAnswers, setCurrentAnswers] = useState<Answer[]>([]);
   const [timeRemaining, setTimeRemaining] = useState(0);
   const [isExamActive, setIsExamActive] = useState(false);
+  const [completedModules, setCompletedModules] = useState<string[]>([]);
+  const [currentModuleIndex, setCurrentModuleIndex] = useState(0);
 
   const generateModuleQuestions = (category: 'leadership' | 'competences' | 'entrepreneuriat'): Question[] => {
     const categoryQuestions = questionsByCategory[category];
@@ -123,8 +129,12 @@ export const ExamProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const certification = getCertificationById(certificationType);
     if (!certification) return;
     
+    setCurrentCertification(certification);
     const module = certification.modules.find(m => m.id === moduleId);
     if (!module) return;
+
+    const moduleIndex = certification.modules.findIndex(m => m.id === moduleId);
+    setCurrentModuleIndex(moduleIndex);
 
     // Générer les questions pour ce module basé sur sa catégorie
     let category: 'leadership' | 'competences' | 'entrepreneuriat' = 'leadership';
@@ -163,11 +173,14 @@ export const ExamProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Simulation de la soumission
     await new Promise(resolve => setTimeout(resolve, 1000));
     
+    // Ajouter le module aux modules complétés
+    setCompletedModules(prev => [...prev, currentModule.id]);
+    
     const submission: ExamSubmission = {
       id: Date.now().toString(),
       candidateId: '3', // Mock candidate ID
       examId: currentModule.id,
-      certificationType: 'mock-cert',
+      certificationType: currentCertification?.id || 'mock-cert',
       moduleId: currentModule.id,
       answers: currentAnswers,
       submittedAt: new Date().toISOString(),
@@ -176,23 +189,48 @@ export const ExamProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     console.log('Module submitted:', submission);
     
-    setIsExamActive(false);
-    setCurrentModule(null);
     setCurrentAnswers([]);
-    setTimeRemaining(0);
+    
+    // Vérifier s'il y a d'autres modules
+    if (currentCertification && currentModuleIndex < currentCertification.modules.length - 1) {
+      // Il y a encore des modules à faire
+      setIsExamActive(false);
+      setCurrentModule(null);
+      setTimeRemaining(0);
+    } else {
+      // Tous les modules sont terminés
+      setIsExamActive(false);
+      setCurrentModule(null);
+      setCurrentCertification(null);
+      setTimeRemaining(0);
+      setCurrentModuleIndex(0);
+    }
     
     return true;
   };
 
+  const endExam = () => {
+    setIsExamActive(false);
+    setCurrentModule(null);
+    setCurrentCertification(null);
+    setCurrentAnswers([]);
+    setTimeRemaining(0);
+    setCurrentModuleIndex(0);
+  };
+
   const value: ExamContextType = {
     currentModule,
+    currentCertification,
     currentAnswers,
     timeRemaining,
     isExamActive,
+    completedModules,
+    currentModuleIndex,
     startModule,
     submitAnswer,
     submitModule,
     setTimeRemaining,
+    endExam,
   };
 
   return (
